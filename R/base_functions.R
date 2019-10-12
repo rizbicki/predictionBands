@@ -46,11 +46,15 @@ profile_density <- function(t_grid,y_grid,cde_estimate)
 #'
 #'  # Dist-split
 #'  bands <- predict(fit,xnew,type="dist")
+#'  bands[[1]]
+#'  bands[[2]]
 #'  plot(bands)
 #'  plot(bands,ynew)
 #'
 #'  # CD-split
 #'  bands <- predict(fit,xnew,type="cd")
+#'  bands[[1]]
+#'  bands[[2]]
 #'  plot(bands)
 #'  plot(bands,ynew)
 fit_predictionBands <- function(x,y,
