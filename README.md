@@ -3,7 +3,7 @@ R package to compute distribution-free prediction bands using density estimators
 
 Izbicki, R., Shimizu, G. Y., Stern, R. B. (2019). Distribution-free conditional predictive bands using density estimators.
 
-The package estimates conditional densities using [FlexCode](https://github.com/rizbicki/FlexCoDE/). (More on FlexCoDE: Izbicki, R.; Lee, A.B. [Converting High-Dimensional Regression to High-Dimensional( Conditional Density Estimation](https://projecteuclid.org/euclid.ejs/1499133755). Electronic Journal of Statistics, 2017)
+The package estimates conditional densities using [FlexCode](https://github.com/rizbicki/FlexCoDE/). (More on FlexCoDE: Izbicki, R.; Lee, A.B. [Converting High-Dimensional Regression to High-Dimensional Conditional Density Estimation](https://projecteuclid.org/euclid.ejs/1499133755). Electronic Journal of Statistics, 2017)
 
 Two types of bands are available: 'dist-split' returns intervals (ideal for unimodal response distributions); 'cd-split' returns unions of intervals (ideal for multimodal response distributions)
 
