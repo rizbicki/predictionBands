@@ -26,10 +26,15 @@ d<-10
 data<-matrix(NA,n,d+1)
 x<-matrix(rnorm(n*d),n,d)
 y<-x[,1]+rnorm(n,0,0.1)
+
+# fit predictionBands object
 fit<-fit_predictionBands(x,y,0.5,0.4,0.1)
 
+# generate new data:
 xnew<-matrix(rnorm(n_new*d),n_new,d)
 ynew<-xnew[,1]+rnorm(n_new,0,0.1)
+
+# compute prediction bands for new data:
 
 #Dist-split
 bands<-predict(fit,xnew,type="dist")
