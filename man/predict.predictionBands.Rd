@@ -5,8 +5,7 @@
 \title{Compute conformal prediction bands based on density estimation on new samples}
 \usage{
 \method{predict}{predictionBands}(cd_split_fit, xnew, type = "dist",
-  alpha = 0.1, k = min(100,
-  length(cd_split_fit$conformity_score_train)))
+  alpha = 0.1)
 }
 \arguments{
 \item{cd_split_fit}{# Object of the class predictionBands, fitted using function \code{\link{fit_predictionBands}}}
@@ -16,8 +15,6 @@
 \item{type}{# type of prediction bands. dist for 'dist-split' and cd for 'cd-split'.}
 
 \item{alpha}{# Miscoverage level (defaults to 10\%)}
-
-\item{k}{# Number of nearest neighbors for cd-split. Default to 100}
 }
 \value{
 Object of the class 'bands' with the following components:

@@ -5,8 +5,8 @@
 \title{Fit conformal prediction bands based on density estimation for regression}
 \usage{
 fit_predictionBands(x, y, per_train = 0.4, per_val = 0.1, per_ths = 1
-  - per_train - per_val,
-  regressionFunction = FlexCoDE::regressionFunction.Forest, ...)
+  - per_train - per_val, k = max(round(per_ths * nrow(as.matrix(x))/100),
+  1), regressionFunction = FlexCoDE::regressionFunction.Forest, ...)
 }
 \arguments{
 \item{x}{Matrix with covariates of training set}
@@ -19,6 +19,8 @@ fit_predictionBands(x, y, per_train = 0.4, per_val = 0.1, per_ths = 1
 
 \item{per_ths}{# percentage of samples used for computeing thresholds for the conformal method (defaults to 50\%)}
 
+\item{k}{# Number of clusters for cd-split. Default to round(per_ths*nrow(as.matrix(x))/100) so that each cluster has on average 100 samples}
+
 \item{regressionFunction}{# regression function to be used for FlexCode. Defaults to Random Forests. See FlexCode documentation for additional regression methods.}
 
 \item{...}{Additional arguments to FlexCoDE::fitFlexCoDE}
@@ -30,6 +32,7 @@ Returns an object of the class predictionBands with the following components:
 \item{conformity_score_train}{Conformal scores on the training set (for cd-split)}
 \item{t_grid}{Level sets of the densities}
 \item{g_train}{Profiles of the training sample}
+\item{center_kmeans}{The center of the clusters found by kmeans (in the profile space)}
 }
 \description{
 Fit conformal prediction bands based on density estimation for regression
@@ -50,11 +53,15 @@ ynew <- xnew[,1]+rnorm(n_new,0,0.1)
 
  # Dist-split
  bands <- predict(fit,xnew,type="dist")
+ bands[[1]]
+ bands[[2]]
  plot(bands)
  plot(bands,ynew)
 
  # CD-split
  bands <- predict(fit,xnew,type="cd")
+ bands[[1]]
+ bands[[2]]
  plot(bands)
  plot(bands,ynew)
 }

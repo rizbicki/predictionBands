@@ -19,6 +19,7 @@ profile_density <- function(t_grid,y_grid,cde_estimate)
 #' @param per_train # percentage of samples used for traning density estimator (defaults to 40\%)
 #' @param per_val # percentage of samples used for tuning density estimator (defaults to 10\%)
 #' @param per_ths  # percentage of samples used for computeing thresholds for the conformal method (defaults to 50\%)
+#' @param k # Number of clusters for cd-split. Default to round(per_ths*nrow(as.matrix(x))/100) so that each cluster has on average 100 samples
 #' @param regressionFunction # regression function to be used for FlexCode. Defaults to Random Forests. See FlexCode documentation for additional regression methods.
 #' @param ... Additional arguments to FlexCoDE::fitFlexCoDE
 #'
@@ -28,6 +29,7 @@ profile_density <- function(t_grid,y_grid,cde_estimate)
 #' \item{conformity_score_train}{Conformal scores on the training set (for cd-split)}
 #' \item{t_grid}{Level sets of the densities}
 #' \item{g_train}{Profiles of the training sample}
+#' \item{center_kmeans}{The center of the clusters found by kmeans (in the profile space)}
 #' @export
 #'
 #' @examples
@@ -61,9 +63,11 @@ fit_predictionBands <- function(x,y,
                                 per_train=0.4,
                                 per_val=0.1,
                                 per_ths=1-per_train-per_val,
+                                k=max(round(per_ths*nrow(as.matrix(x))/100),1),
                                 regressionFunction=FlexCoDE::regressionFunction.Forest,
                                 ...)
 {
+  x <- as.matrix(x)
   n_levels <- 1000
   splits <- sample(c("Train","Validation","Threshold"),size = nrow(x),
                    prob=c(per_train,per_val,per_ths),
@@ -75,6 +79,27 @@ fit_predictionBands <- function(x,y,
                                zValidation=y[splits=="Validation"],
                                regressionFunction = regressionFunction,
                                ...)
+
+
+  pred_train_cde <- predict(fit,x[splits!="Threshold",])
+  t_grid <- seq(0,max(pred_train_cde$CDE),length.out = n_levels)
+  g_train_cde <- matrix(NA,nrow(pred_train_cde$CDE),
+                        length(t_grid))
+  for(ii in 1:nrow(pred_train_cde$CDE))
+  {
+    g_train_cde[ii,] <- profile_density(t_grid,pred_train_cde$z,
+                                        pred_train_cde$CDE[ii,])
+  }
+
+  kmeans_result <- try(kmeanspp(g_train_cde,k=k),
+                       silent = TRUE)
+  if(class(kmeans_result)=="try-error")
+  {
+    kmeans_result <- kmeans(g_train_cde,centers = k)
+  }
+  centers_kmeans <- kmeans_result$centers
+  rm(g_train_cde)
+  rm(pred_train_cde)
 
 
   pred_train <- predict(fit,x[splits=="Threshold",])
@@ -104,6 +129,7 @@ fit_predictionBands <- function(x,y,
   return_value$conformity_score_train <- conformity_score_train
   return_value$t_grid <- t_grid
   return_value$g_train <- g_train
+  return_value$centers_kmeans <- centers_kmeans
   class(return_value) <-"predictionBands"
   return(return_value)
 }
@@ -114,7 +140,6 @@ fit_predictionBands <- function(x,y,
 #' @param xnew # new covariates (one per row) where prediction bands are to be computed
 #' @param type # type of prediction bands. dist for 'dist-split' and cd for 'cd-split'.
 #' @param alpha # Miscoverage level (defaults to 10\%)
-#' @param k # Number of nearest neighbors for cd-split. Default to 100
 #'
 #' @return Object of the class 'bands' with the following components:
 #' \item{y_grid}{Grid of values for y}
@@ -127,52 +152,46 @@ fit_predictionBands <- function(x,y,
 #' @export
 #'
 #' @examples See \code{\link{fit_predictionBands}}
-predict.predictionBands <- function(cd_split_fit,xnew,type="dist",alpha=0.1,
-                                    k=min(100,length(cd_split_fit$conformity_score_train)))
+predict.predictionBands <- function(cd_split_fit,xnew,type="dist",alpha=0.1)
 {
   pred_test <- predict(cd_split_fit$density_fit,xnew)
-
 
   if(type=="cd")
   {
     prediction_bands_which_belong <- list()
     intervals <- list()
-    if(k<length(cd_split_fit$conformity_score_train))
+
+    ths <- rep(NA,length(cd_split_fit$conformity_score_train))
+    g_test <- matrix(NA,nrow(xnew),length(cd_split_fit$t_grid))
+    for(ii in 1:nrow(xnew))
     {
-      ths <- rep(NA,length(cd_split_fit$conformity_score_train))
+      g_test[ii,] <- profile_density(cd_split_fit$t_grid,
+                                     pred_test$z,
+                                     pred_test$CDE[ii,])
+    }
+    which_partition_test <- which_neighbors(cd_split_fit$centers_kmeans,
+                                            g_test,1)
+    which_partition_train <- which_neighbors(cd_split_fit$centers_kmeans,
+                                             cd_split_fit$g_train,1)
 
-      g_test <- matrix(NA,nrow(xnew),length(cd_split_fit$t_grid))
-      for(ii in 1:nrow(xnew))
-      {
-        g_test[ii,] <- profile_density(cd_split_fit$t_grid,
-                                       pred_test$z,
-                                       pred_test$CDE[ii,])
-      }
-      neighbors <- which_neighbors(cd_split_fit$g_train,
-                                   g_test,k=k)
-      for(ii in 1:nrow(xnew))
-      {
-        ths[ii] <- quantile(cd_split_fit$conformity_score_train[neighbors[ii,]],probs=alpha)
-        prediction_bands_which_belong[[ii]] <- pred_test$CDE[ii,]>=ths[ii]
-        intervals[[ii]] <- compute_intervals(prediction_bands_which_belong[[ii]],
-                                             pred_test$z)
-      }
-
-    } else {
-      ths <- quantile(cd_split_fit$conformity_score_train,
-                      probs=alpha)
-      for(ii in 1:nrow(xnew))
-      {
-        prediction_bands_which_belong[[ii]] <- pred_test$CDE[ii,]>=ths
-        intervals[[ii]] <- compute_intervals(prediction_bands_which_belong[[ii]],
-                                             pred_test$z)
-      }
-      ths <- rep(ths,nrow(xnew))
+    ths_partition <- rep(NA,nrow(cd_split_fit$centers_kmeans))
+    for(ii in 1:nrow(cd_split_fit$centers_kmeans))
+    {
+      ths_partition[ii] <-  quantile(cd_split_fit$conformity_score_train[which_partition_train==ii],
+                                     probs=alpha)
+    }
+    ths_partition[is.na(ths_partition)] <- quantile(cd_split_fit$conformity_score_train,probs=alpha)
+    ths <- ths_partition[which_partition_test]
+    for(ii in 1:nrow(xnew))
+    {
+      prediction_bands_which_belong[[ii]] <- pred_test$CDE[ii,]>=ths
+      intervals[[ii]] <- compute_intervals(prediction_bands_which_belong[[ii]],
+                                           pred_test$z)
     }
 
-    return_value <-list(y_grid=pred_test$z,ths=ths,densities=pred_test$CDE,
-                        prediction_bands_which_belong=prediction_bands_which_belong,
-                        intervals=intervals,ths=ths,type="cd",alpha=alpha,k=k)
+    return_value <- list(y_grid=pred_test$z,ths=ths,densities=pred_test$CDE,
+                         prediction_bands_which_belong=prediction_bands_which_belong,
+                         intervals=intervals,ths=ths,type="cd",alpha=alpha)
   } else if(type=="dist"){
     ths <-  quantile(cd_split_fit$cum_dist_evaluated_train,
                      probs = c(alpha/2,1-alpha/2))
@@ -232,16 +251,18 @@ plot.bands <- function(bands,ynew=NULL)
   data_plot_list <- NULL
   for(ii in 1:length(bands$prediction_bands_which_belong))
   {
-    data_plot_list[[ii]] <- data.frame(x=ii,y=bands$y_grid[bands$prediction_bands_which_belong[[ii]]])
+    pred_region <- bands$y_grid[bands$prediction_bands_which_belong[[ii]]]
+    if(length(pred_region)==0)
+    {
+      data_plot_list[[ii]] <- data.frame(x=ii,y=median(bands$y_grid))
+      next;
+    }
+      data_plot_list[[ii]] <- data.frame(x=ii,y=pred_region)
   }
   data_plot_regions <- do.call("rbind",data_plot_list)
 
   type <- ifelse(bands$type=="dist","Dist-split","CD-split")
   title <- paste0(type, "; alpha=",bands$alpha)
-  if(bands$type=="cd")
-  {
-    title <- paste0(title," (k=",bands$k,")")
-  }
   g <- ggplot()+
     geom_point(data=data_plot_regions,
                aes(x=x,y=y),alpha=0.02,color="red")+
