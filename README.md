@@ -1,7 +1,7 @@
 # predictionBands
 R package to compute distribution-free prediction bands using density estimators according to
 
-Izbicki, R., Shimizu, G. Y., Stern, R. B. (2019). [Distribution-free conditional predictive bands using density estimators](https://arxiv.org/abs/1910.05575).
+Izbicki, R., Shimizu, G. Y., Stern, R. B. (2019). [Flexible distribution-free conditional predictive bands using density estimators](http://proceedings.mlr.press/v108/izbicki20a.html).
 
 The package estimates conditional densities using [FlexCode](https://github.com/rizbicki/FlexCoDE/). (More on FlexCoDE: Izbicki, R.; Lee, A.B. [Converting High-Dimensional Regression to High-Dimensional Conditional Density Estimation](https://projecteuclid.org/euclid.ejs/1499133755). Electronic Journal of Statistics, 2017)
 
