@@ -1,3 +1,9 @@
+#' @return logical value (boolean)
+#' @export
+r_new_interface <- function() {
+  as.numeric(R.version$major) >= 4
+}
+
 # finds k nearest neighbors in xTrain of each xTest
 which_neighbors <-  function(xTrain,xTest,k){
   return(FNN::get.knnx(data=xTrain,query = xTest,k=k)$nn.index)
@@ -80,8 +86,7 @@ fit_predictionBands <- function(x,y,
                                regressionFunction = regressionFunction,
                                ...)
 
-
-  pred_train_cde <- predict(fit,x[splits!="Threshold",])
+  pred_train_cde <- FlexCoDE::predict.FlexCoDE(fit,x[splits!="Threshold",]) ## done as FlexCoDE didn't use .S3method
   t_grid <- seq(0,max(pred_train_cde$CDE),length.out = n_levels)
   g_train_cde <- matrix(NA,nrow(pred_train_cde$CDE),
                         length(t_grid))
@@ -102,7 +107,7 @@ fit_predictionBands <- function(x,y,
   rm(pred_train_cde)
 
 
-  pred_train <- predict(fit,x[splits=="Threshold",])
+  pred_train <- FlexCoDE::predict.FlexCoDE(fit,x[splits=="Threshold",])  ## done as FlexCoDE didn't use .S3method
   t_grid <-seq(0,max(pred_train$CDE),length.out = n_levels)
   # observed densities:
   which_select <- cbind(1:length(y[splits=="Threshold"]),
@@ -121,7 +126,8 @@ fit_predictionBands <- function(x,y,
   }
 
 
-  cum_dist_evaluated_train <- cum_dist(pred_train$z,pred_train$CDE,y[splits=="Threshold"])
+  cum_dist_evaluated_train <- cum_dist(pred_train$z,pred_train$CDE,
+                                       y[splits=="Threshold"])
 
   return_value <- NULL
   return_value$density_fit <- fit
@@ -154,7 +160,7 @@ fit_predictionBands <- function(x,y,
 #' @examples See \code{\link{fit_predictionBands}}
 predict.predictionBands <- function(cd_split_fit,xnew,type="dist",alpha=0.1)
 {
-  pred_test <- predict(cd_split_fit$density_fit,xnew)
+  pred_test <- FlexCoDE::predict.FlexCoDE(cd_split_fit$density_fit,xnew)  ## done as FlexCoDE didn't use .S3method
 
   if(type=="cd")
   {
@@ -192,6 +198,7 @@ predict.predictionBands <- function(cd_split_fit,xnew,type="dist",alpha=0.1)
     return_value <- list(y_grid=pred_test$z,ths=ths,densities=pred_test$CDE,
                          prediction_bands_which_belong=prediction_bands_which_belong,
                          intervals=intervals,ths=ths,type="cd",alpha=alpha)
+
   } else if(type=="dist"){
     ths <-  quantile(cd_split_fit$cum_dist_evaluated_train,
                      probs = c(alpha/2,1-alpha/2))
@@ -216,6 +223,11 @@ predict.predictionBands <- function(cd_split_fit,xnew,type="dist",alpha=0.1)
 
 
 }
+
+if (r_new_interface()){
+  .S3method("predict", "predictionBands")
+}
+
 
 compute_intervals <- function(sequence,t_grid) {
   aux <- rle(sequence)
@@ -286,8 +298,13 @@ plot.bands <- function(bands,ynew=NULL)
 
 
   plot(g)
-  return(g)
+  invisible(g)
 }
+
+if (r_new_interface()){
+  .S3method("plot", "bands")
+}
+
 
 cum_dist <- function(y_grid,cde_estimates,y_values)
 {
