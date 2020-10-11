@@ -18,5 +18,5 @@
 Plots prediction bands for new observations
 }
 \examples{
- See \\code{\\link{fit_predictionBands}}
+ See \code{\link{fit_predictionBands}}
 }

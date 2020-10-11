@@ -1,8 +1,3 @@
-#' @return logical value (boolean)
-#' @export
-r_new_interface <- function() {
-  as.numeric(R.version$major) >= 4
-}
 
 # finds k nearest neighbors in xTrain of each xTest
 which_neighbors <-  function(xTrain,xTest,k){
@@ -86,7 +81,7 @@ fit_predictionBands <- function(x,y,
                                regressionFunction = regressionFunction,
                                ...)
 
-  pred_train_cde <- FlexCoDE::predict.FlexCoDE(fit,x[splits!="Threshold",]) ## done as FlexCoDE didn't use .S3method
+  pred_train_cde <- FlexCoDE::predict.FlexCoDE(fit,x[splits!="Threshold",])
   t_grid <- seq(0,max(pred_train_cde$CDE),length.out = n_levels)
   g_train_cde <- matrix(NA,nrow(pred_train_cde$CDE),
                         length(t_grid))
@@ -160,7 +155,7 @@ fit_predictionBands <- function(x,y,
 #' @examples See \code{\link{fit_predictionBands}}
 predict.predictionBands <- function(cd_split_fit,xnew,type="dist",alpha=0.1)
 {
-  pred_test <- FlexCoDE::predict.FlexCoDE(cd_split_fit$density_fit,xnew)  ## done as FlexCoDE didn't use .S3method
+  pred_test <- FlexCoDE::predict.FlexCoDE(cd_split_fit$density_fit,xnew)
 
   if(type=="cd")
   {
@@ -222,10 +217,6 @@ predict.predictionBands <- function(cd_split_fit,xnew,type="dist",alpha=0.1)
   return(return_value)
 
 
-}
-
-if (r_new_interface()){
-  .S3method("predict", "predictionBands")
 }
 
 
@@ -299,10 +290,6 @@ plot.bands <- function(bands,ynew=NULL)
 
   plot(g)
   invisible(g)
-}
-
-if (r_new_interface()){
-  .S3method("plot", "bands")
 }
 
 

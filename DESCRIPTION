@@ -14,5 +14,5 @@ Imports:
     FNN,
     ggplot2
 Remotes: git::https://github.com/rizbicki/FlexCoDE
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.1
 Depends: FlexCoDE, ggplot2

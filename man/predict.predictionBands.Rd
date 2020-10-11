@@ -4,8 +4,7 @@
 \alias{predict.predictionBands}
 \title{Compute conformal prediction bands based on density estimation on new samples}
 \usage{
-\method{predict}{predictionBands}(cd_split_fit, xnew, type = "dist",
-  alpha = 0.1)
+\method{predict}{predictionBands}(cd_split_fit, xnew, type = "dist", alpha = 0.1)
 }
 \arguments{
 \item{cd_split_fit}{# Object of the class predictionBands, fitted using function \code{\link{fit_predictionBands}}}
@@ -30,5 +29,5 @@ Object of the class 'bands' with the following components:
 Compute conformal prediction bands based on density estimation on new samples
 }
 \examples{
-See \\code{\\link{fit_predictionBands}}
+See \code{\link{fit_predictionBands}}
 }

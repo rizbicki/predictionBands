@@ -4,9 +4,16 @@
 \alias{fit_predictionBands}
 \title{Fit conformal prediction bands based on density estimation for regression}
 \usage{
-fit_predictionBands(x, y, per_train = 0.4, per_val = 0.1, per_ths = 1
-  - per_train - per_val, k = max(round(per_ths * nrow(as.matrix(x))/100),
-  1), regressionFunction = FlexCoDE::regressionFunction.Forest, ...)
+fit_predictionBands(
+  x,
+  y,
+  per_train = 0.4,
+  per_val = 0.1,
+  per_ths = 1 - per_train - per_val,
+  k = max(round(per_ths * nrow(as.matrix(x))/100), 1),
+  regressionFunction = FlexCoDE::regressionFunction.Forest,
+  ...
+)
 }
 \arguments{
 \item{x}{Matrix with covariates of training set}
