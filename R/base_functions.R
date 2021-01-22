@@ -28,6 +28,7 @@ profile_density <- function(t_grid,y_grid,cde_estimate)
 #' \item{density_fit}{Object of the class FlexCoDE with the estimated density}
 #' \item{cum_dist_evaluated_train}{Cumulative conditional distribution functions on the training set (for dist-split)}
 #' \item{conformity_score_train}{Conformal scores on the training set (for cd-split)}
+#' \item{conformity_score_train_hpd}{Conformal scores on the training set (for hpd-split)}
 #' \item{t_grid}{Level sets of the densities}
 #' \item{g_train}{Profiles of the training sample}
 #' \item{center_kmeans}{The center of the clusters found by kmeans (in the profile space)}
@@ -103,6 +104,22 @@ fit_predictionBands <- function(x,y,
 
 
   pred_train <- FlexCoDE::predict.FlexCoDE(fit,x[splits=="Threshold",])  ## done as FlexCoDE didn't use .S3method
+
+  # hpd-split
+  which_select <- cbind(1:length(y[splits=="Threshold"]),
+                        which_neighbors(as.matrix(pred_train$z),
+                                        as.matrix(y[splits=="Threshold"]),
+                                        k=1))
+  which_smaller <- apply(pred_train$CDE<=pred_train$CDE[which_select],1,which)
+  conformity_score_train_hpd <- rep(NA,nrow(pred_train$CDE))
+  for(ii in 1:nrow(pred_train$CDE))
+  {
+    conformity_score_train_hpd[ii] <- sum(pred_train$CDE[ii,which_smaller[[ii]]])
+  }
+  band <- diff(pred_train$z)[1]
+  conformity_score_train_hpd <- conformity_score_train_hpd*band
+
+
   t_grid <-seq(0,max(pred_train$CDE),length.out = n_levels)
   # observed densities:
   which_select <- cbind(1:length(y[splits=="Threshold"]),
@@ -128,7 +145,9 @@ fit_predictionBands <- function(x,y,
   return_value$density_fit <- fit
   return_value$cum_dist_evaluated_train <- cum_dist_evaluated_train
   return_value$conformity_score_train <- conformity_score_train
+  return_value$conformity_score_train_hpd <- conformity_score_train_hpd
   return_value$t_grid <- t_grid
+  return_value$band <- band
   return_value$g_train <- g_train
   return_value$centers_kmeans <- centers_kmeans
   class(return_value) <-"predictionBands"
@@ -148,7 +167,7 @@ fit_predictionBands <- function(x,y,
 #' \item{ths}{thresholds agains which to compare conformal scores.}
 #' \item{prediction_bands_which_belong}{List with logical values with the same size as nrow(xnew); each element contains shows which elements of y_grid are contained on the prediction bands of the corresponding row of xnew}
 #' \item{intervals}{List with the same size as nrow(xnew) that contains the prediction bands for each element of xnew. For cd-split, results are shown as a union of disjoint intervals.}
-#' \item{type}{Type of prediction band}
+#' \item{type}{Type of prediction band ("cd", "dist" or "hpd")}
 #' \item{alpha}{Miscoverage level}
 #' @export
 #'
@@ -210,13 +229,48 @@ predict.predictionBands <- function(cd_split_fit,xnew,type="dist",alpha=0.1)
                         prediction_bands_which_belong=prediction_bands_which_belong,
                         intervals=intervals,type="dist",alpha=alpha)
 
-  } else{
+  }   else if(type=="hpd") {
+    th <- quantile(cd_split_fit$conformity_score_train_hpd,probs=alpha)
+    prediction_bands_which_belong <- list()
+    intervals <- list()
+    for(ii in 1:nrow(xnew))
+    {
+      th_hpd <- findThresholdHPD(cd_split_fit$band,pred_test$CDE[ii,],1-th)
+      prediction_bands_which_belong[[ii]] <- pred_test$CDE[ii,]>=th_hpd
+      intervals[[ii]] <- compute_intervals(prediction_bands_which_belong[[ii]],
+                                           pred_test$z)
+    }
+    return_value <-list(y_grid=pred_test$z,th_hpd=th_hpd,densities=pred_test$CDE,intervals=intervals,
+                        prediction_bands_which_belong=prediction_bands_which_belong,type="hpd",alpha=alpha)
+  }  else {
     stop(paste0("Type of distribution not implemented", " (",type,")"))
   }
   class(return_value) <- "bands"
   return(return_value)
 
 
+}
+
+
+findThresholdHPD=function(binSize,estimates,confidence)
+{
+  estimates=as.vector(estimates)
+  maxDensity=max(estimates)
+  minDensity=min(estimates)
+  newCut=(maxDensity+minDensity)/2
+  eps=1
+  ii=1
+  while(ii<=1000)
+  {
+    prob=sum(binSize*estimates*(estimates>newCut))
+    eps=abs(confidence-prob)
+    if(eps<0.0000001) break; # level found
+    if(confidence>prob) maxDensity=newCut
+    if(confidence<prob) minDensity=newCut
+    newCut=(maxDensity+minDensity)/2
+    ii=ii+1
+  }
+  return(newCut)
 }
 
 
@@ -260,7 +314,7 @@ plot.bands <- function(bands,ynew=NULL)
       data_plot_list[[ii]] <- data.frame(x=ii,y=median(bands$y_grid))
       next;
     }
-      data_plot_list[[ii]] <- data.frame(x=ii,y=pred_region)
+    data_plot_list[[ii]] <- data.frame(x=ii,y=pred_region)
   }
   data_plot_regions <- do.call("rbind",data_plot_list)
 

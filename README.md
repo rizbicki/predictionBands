@@ -19,7 +19,10 @@ devtools::install_github("rizbicki/predictionBands")
 A simple example:
 
 ```R
-#generate data
+library(predictionBands)
+
+library(FlexCode)
+
 n<-1000
 n_new<-50
 d<-10
@@ -38,15 +41,18 @@ ynew<-xnew[,1]+rnorm(n_new,0,0.1)
 
 #Dist-split
 bands<-predict(fit,xnew,type="dist")
-bands[[1]]
-bands[[2]]
 plot(bands)
 plot(bands,ynew) # if ynew is available
 
 #CD-split
 bands<-predict(fit,xnew,type="cd")
-bands[[1]]
-bands[[2]]
+plot(bands)
+plot(bands,ynew) # if ynew is available
+
+#Hpd-split
+bands<-predict(fit,xnew,type="hpd")
+#bands[[1]]
+#bands[[2]]
 plot(bands)
 plot(bands,ynew) # if ynew is available
 ```
