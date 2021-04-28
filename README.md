@@ -21,7 +21,7 @@ A simple example:
 ```R
 library(predictionBands)
 
-library(FlexCode)
+library(FlexCoDE)
 
 n<-1000
 n_new<-50
