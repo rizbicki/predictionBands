@@ -204,7 +204,7 @@ predict.predictionBands <- function(cd_split_fit,xnew,type="dist",alpha=0.1)
     ths <- ths_partition[which_partition_test]
     for(ii in 1:nrow(xnew))
     {
-      prediction_bands_which_belong[[ii]] <- pred_test$CDE[ii,]>=ths
+      prediction_bands_which_belong[[ii]] <- pred_test$CDE[ii,]>=ths[ii]
       intervals[[ii]] <- compute_intervals(prediction_bands_which_belong[[ii]],
                                            pred_test$z)
     }
@@ -233,10 +233,11 @@ predict.predictionBands <- function(cd_split_fit,xnew,type="dist",alpha=0.1)
     th <- quantile(cd_split_fit$conformity_score_train_hpd,probs=alpha)
     prediction_bands_which_belong <- list()
     intervals <- list()
+    th_hpd <- rep(NA,nrow(xnew))
     for(ii in 1:nrow(xnew))
     {
-      th_hpd <- findThresholdHPD(cd_split_fit$band,pred_test$CDE[ii,],1-th)
-      prediction_bands_which_belong[[ii]] <- pred_test$CDE[ii,]>=th_hpd
+      th_hpd[ii] <- findThresholdHPD(cd_split_fit$band,pred_test$CDE[ii,],1-th)
+      prediction_bands_which_belong[[ii]] <- pred_test$CDE[ii,]>=th_hpd[ii]
       intervals[[ii]] <- compute_intervals(prediction_bands_which_belong[[ii]],
                                            pred_test$z)
     }
@@ -318,7 +319,14 @@ plot.bands <- function(bands,ynew=NULL)
   }
   data_plot_regions <- do.call("rbind",data_plot_list)
 
-  type <- ifelse(bands$type=="dist","Dist-split","CD-split")
+  if(bands$type=="dist")
+  {
+    type <- "Dist-split"
+  } else if(bands$type=="cd") {
+    type <- "CD-split"
+  } else {
+    type <- "HPD-split"
+  }
   title <- paste0(type, "; alpha=",bands$alpha)
   g <- ggplot()+
     geom_point(data=data_plot_regions,
@@ -355,5 +363,4 @@ cum_dist <- function(y_grid,cde_estimates,y_values)
     return(sum(cde_estimates[xx,1:which_closest[xx]])*diff(y_grid)[1])
   })
 }
-
 
